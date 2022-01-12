@@ -253,7 +253,10 @@ def main():
                 turn = turn % 2
 
             elif ai_difficulty == "medium":
+
                 column = random.randint(0, x_cells - 1)
+                while column-1 is not 0:
+                    column = random.randint(0, x_cells - 1)
                 row = available_row(board, column, y_cells - 1)
                 update_board(board, column, row, 2)
                 if check_win(board, 2):
