@@ -23,6 +23,7 @@ yellowColor = (255, 255, 0)
 pygame.font.init()
 font = pygame.font.SysFont("monospace", 75)
 difficulty_font = pygame.font.SysFont("arial", 30)
+ai_difficulty = str
 easy_font = difficulty_font.render('easy', True, blackColor)
 medium_font = difficulty_font.render('medium', True, blackColor)
 hard_font = difficulty_font.render('hard', True, blackColor)
@@ -42,6 +43,16 @@ def available_row(board, column, row):
         return row
     elif row > 0:
         return available_row(board, column, row - 1)
+
+
+def next_available_row(board, column):
+    for row in range(y_cells):
+        if board[row][column] == 0:
+            return row
+
+
+def valid_row(board, column):
+    return board[y_cells - 1][column] == 0
 
 
 # Function taken from https://www.askpython.com/python/examples/connect-four-game
@@ -76,6 +87,8 @@ def check_win(board, piece):
                 return True
 
 
+########
+
 def draw_game_board(screen, x, y):
     for column in range(x):
         for row in range(y):
@@ -96,7 +109,52 @@ def update_game_board(screen, board):
                                    piece_radius)
 
 
-#
+# Inspired by Keith Galli's Connect 4 AI
+def score_position(board, piece):
+    score = 0
+    for row in range(y_cells):
+        rows = [row for row in list(board[row, :])]
+        for column in range(x_cells - 3):
+            group = rows[column:column + 4]
+            if group.count(piece) == 4:
+                score = score + 100
+            elif group.count(piece) == 3 and group.count(0) == 1:
+                score = score + 10
+    for column in range(x_cells):
+        columns = [column for column in list(board[:, column])]
+        for row in range(y_cells - 3):
+            group = columns[row:row + 4]
+            if group.count(piece) == 4:
+                score = score + 100
+            elif group.count(piece) == 3 and group.count(0) == 1:
+                score = score + 10
+
+    return score
+
+
+def pick_best_move(board, piece):
+    best_score = 0
+    valid_locations = get_valid_location(board)
+    best_column = random.choice(valid_locations)
+    print(valid_locations)
+    for column in valid_locations:
+        row = next_available_row(board, column)
+        temp_board = board.copy()
+        update_board(temp_board, column, row, piece)
+        score = score_position(temp_board, piece)
+        if score > best_score:
+            best_score = score
+            best_column = column
+    return best_column
+
+
+def get_valid_location(board):
+    valid_locations = []
+    for column in range(x_cells):
+        if valid_row(board, column):
+            valid_locations.append(column)
+    return valid_locations
+
 
 button_x = game_width / 2 - piece_radius
 button_y = game_height / 2
@@ -129,16 +187,16 @@ def main():
                 if button_x + slot_radius > event.pos[0] > button_x and \
                         button_y - slot_radius + piece_radius > \
                         event.pos[1] > button_y - slot_radius:
-                    print("Easy")
+                    ai_difficulty = 'easy'
                     game_running = True
                 if button_x + slot_radius > event.pos[0] > button_x and \
                         button_y + piece_radius > event.pos[1] > button_y:
-                    print("Medium")
+                    ai_difficulty = 'medium'
                     game_running = True
                 if button_x + slot_radius > event.pos[0] > button_x and \
                         button_y + slot_radius + piece_radius > \
                         event.pos[1] > button_y + slot_radius:
-                    print("hard")
+                    ai_difficulty = 'hard'
                     game_running = True
 
     if firstPlayer == "human":
@@ -183,15 +241,41 @@ def main():
                     turn = turn + 1
                     turn = turn % 2
         if opponent == "computer" and turn == 1:
-            column = random.randint(0, x_cells - 1)
-            row = available_row(board, column, y_cells - 1)
-            update_board(board, column, row, 2)
-            if check_win(board, 2):
-                label = font.render("The Computer won!", True, yellowColor)
-                screen.blit(label, (0, 0))
-                game_running = False
-            turn += 1
-            turn = turn % 2
+            if ai_difficulty == "easy":
+                column = random.randint(0, x_cells - 1)
+                row = available_row(board, column, y_cells - 1)
+                update_board(board, column, row, 2)
+                if check_win(board, 2):
+                    label = font.render("The Computer won!", True, yellowColor)
+                    screen.blit(label, (0, 0))
+                    game_running = False
+                turn += 1
+                turn = turn % 2
+
+            elif ai_difficulty == "medium":
+                column = random.randint(0, x_cells - 1)
+                row = available_row(board, column, y_cells - 1)
+                update_board(board, column, row, 2)
+                if check_win(board, 2):
+                    label = font.render("The Computer won!", True, yellowColor)
+                    screen.blit(label, (0, 0))
+                    game_running = False
+                turn += 1
+                turn = turn % 2
+
+            elif ai_difficulty == "hard":
+
+                column = pick_best_move(board, 2)
+                if valid_row(board, column):
+                    row = available_row(board, column, y_cells - 1)
+                    update_board(board, column, row, 2)
+
+                    if check_win(board, 2):
+                        label = font.render("The Computer won!", True, yellowColor)
+                        screen.blit(label, (0, 0))
+                        game_running = False
+                    turn += 1
+                    turn = turn % 2
 
         update_game_board(screen, board)
         if not game_running:
