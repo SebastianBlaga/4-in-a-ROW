@@ -1,2 +1,2 @@
 # 4-in-a-ROW
-Python Project
+Python Project for Python Programming course
